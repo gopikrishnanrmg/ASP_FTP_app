@@ -50,6 +50,9 @@
 			perror("bind failed");
 			exit(EXIT_FAILURE);
 		}
+
+		printf("Server listening on %d\n",port);
+
 		if (listen(server_fd, 3) < 0) {
 			perror("listen");
 			exit(EXIT_FAILURE);
@@ -115,6 +118,7 @@
 		}
 		valread = read(new_socket, buffer, 1024);
 		if(strcmp(buffer,"init")==0){
+			incPort();
 			pid_t pid = fork();
 			if(pid==0){
 				send(new_socket, comPort, sizeof(comPort), 0);
@@ -123,7 +127,6 @@
 				initFTP();
 				exit(0);
 			}
-			incPort();
 		}
 		else
 				send(new_socket, invalid, strlen(invalid), 0);
