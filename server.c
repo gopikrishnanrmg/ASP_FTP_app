@@ -1,4 +1,5 @@
 	#include <netinet/in.h>
+#include <signal.h>
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <string.h>
@@ -9,6 +10,12 @@
 
 	char *comPort = NULL;
 	int port;
+
+	void exitHandler(){
+		free(comPort);
+		printf("Exiting pid %d\n",getpid());
+		exit(0);
+	}
 
 	int incPort(){
 		char temp[4];
@@ -141,6 +148,8 @@
 	{
 		comPort = malloc(sizeof(char)*4);
 		strcpy(comPort,"9000");
+
+		signal(SIGINT, exitHandler);
 
 		while(1){
 			initializeConn();
