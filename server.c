@@ -1,5 +1,5 @@
 	#include <netinet/in.h>
-#include <signal.h>
+	#include <signal.h>
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <string.h>
@@ -7,7 +7,9 @@
 	#include <unistd.h>
 	#include <sys/wait.h>
 	#define PORT 8080
+	#define CMD_SIZE 1024
 
+	char user[32];
 	char *comPort = NULL;
 	int port;
 
@@ -24,6 +26,21 @@
 		currentPort++;
 		sprintf(temp, "%d", currentPort);
 		strcpy(comPort, temp);
+		return 0;
+	}
+
+	int userCommand(int new_socket){
+		int valread;
+		char buffer[CMD_SIZE];
+		
+		strcpy(buffer, "200");
+		send(new_socket, buffer, strlen(buffer), 0);
+
+		valread = read(new_socket, buffer, CMD_SIZE);
+		strcpy(user, buffer);
+		printf("User %s login registered\n",buffer);
+		sprintf(buffer,"230 %s logged in",user);
+		send(new_socket, buffer, strlen(buffer), 0);
 		return 0;
 	}
 
@@ -71,9 +88,14 @@
 			perror("accept");
 			exit(EXIT_FAILURE);
 		}
+		printf("Accepted connection on %d\n",port);
+
 		valread = read(new_socket, buffer, 1024);
 		
-		//Check each command here with strcmp and buffer
+		if(strcmp(buffer, "USER")==0){	//Check each command here with strcmp and buffer
+			perror("USER COMMAND TRIGGERED");
+			userCommand(new_socket);
+		}
 
 
 		close(new_socket);
@@ -83,7 +105,7 @@
 	}
 
 	int initializeConn(){
-	int server_fd, new_socket, valread;
+		int server_fd, new_socket, valread;
 		struct sockaddr_in address;
 		int opt = 1;
 		int addrlen = sizeof(address);
@@ -140,7 +162,6 @@
 		
 		close(new_socket);
 		shutdown(server_fd, SHUT_RDWR);
-
 		return 0;
 	}
 
@@ -151,9 +172,9 @@
 
 		signal(SIGINT, exitHandler);
 
-		while(1){
+		while(1)
 			initializeConn();
-		}
+	
 		
 		free(comPort);
 		return 0;
