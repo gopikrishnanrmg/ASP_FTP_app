@@ -13,6 +13,62 @@
 char commands[CMD_SIZE][CMD_SIZE];
 int cmdLen;
 
+int downloadFile(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+	long int n, size, curSize=0;
+	strcpy(buffer, "RETR");
+	send(sock, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(sock, buffer, CMD_SIZE);
+	
+	if(strcmp(buffer, "200")==0){
+
+		strcpy(buffer,commands[1]);
+		send(sock, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(sock, buffer, CMD_SIZE);
+
+		if(strcmp(buffer, "200")==0){
+			memset(&buffer[0], 0, sizeof(buffer));
+			int fd = open(commands[1],O_WRONLY|O_CREAT,0777);
+			if(fd==-1){
+				printf("\n The operation was not successful with file %s\n",commands[1]);
+			}
+			else{
+				strcpy(buffer, "200");
+				send(sock, buffer, strlen(buffer), 0);
+				memset(&buffer[0], 0, sizeof(buffer));
+				valread = read(sock, buffer, CMD_SIZE);
+				size = atoi(buffer);
+
+				memset(&buffer[0], 0, sizeof(buffer));
+				strcpy(buffer, "200");
+				send(sock, buffer, strlen(buffer), 0);
+				memset(&buffer[0], 0, sizeof(buffer));
+
+				while((valread = read(sock, buffer, CMD_SIZE))>0){
+					fprintf(stderr,"Read %d bytes\n",valread);
+					write(fd, buffer,valread);
+					memset(&buffer[0], 0, sizeof(buffer));
+					curSize+=valread;
+					fprintf(stderr,"Size is %ld and cursize is %ld\n",size,curSize);
+					if(curSize==size)
+						break;
+				}
+				close(fd);
+				
+			}
+		}
+		else{
+			//no file
+		}	
+	}
+	
+	return 0;
+}
+
+
 int uploadFile(int sock){
 	int valread;
 	char buffer[CMD_SIZE];
@@ -22,18 +78,21 @@ int uploadFile(int sock){
 		printf("\n The operation was not successful with file %s\n",commands[1]);
 	}
 	else{
-		strcpy(buffer, "PUT");
+		strcpy(buffer, "STOR");
 		send(sock, buffer, strlen(buffer), 0);
 		memset(&buffer[0], 0, sizeof(buffer));
 		valread = read(sock, buffer, CMD_SIZE);
 
 		if(strcmp(buffer, "200")==0){
+
 			memset(&buffer[0], 0, sizeof(buffer));
 			strcpy(buffer, commands[1]);
 			send(sock, buffer, strlen(buffer), 0);
 			memset(&buffer[0], 0, sizeof(buffer));
 			valread = read(sock, buffer, CMD_SIZE);
+
 			if(strcmp(buffer, "200")==0){
+
 				memset(&buffer[0], 0, sizeof(buffer));
 				size = lseek(fd,0, SEEK_END);
 				lseek(fd, 0, SEEK_SET);
@@ -42,7 +101,9 @@ int uploadFile(int sock){
 				send(sock, buffer, strlen(buffer), 0);
 				memset(&buffer[0], 0, sizeof(buffer));
 				valread = read(sock, buffer, CMD_SIZE);
+
 				if(strcmp(buffer, "200")==0){
+
 					memset(&buffer[0], 0, sizeof(buffer));
 					while((n=read(fd,buffer,CMD_SIZE))>0){
 						fprintf(stderr,"sending %ld bytes, sending %ld bytes\n",n,strlen(buffer));
@@ -126,8 +187,10 @@ int initFTP(int port){
 	
 	if(strcmp(commands[0],"USER")==0)
 		userCommand(sock);
-	else if(strcmp(commands[0],"PUT")==0)
+	else if(strcmp(commands[0],"STOR")==0)
 		uploadFile(sock);
+	else if(strcmp(commands[0],"RETR")==0)
+		downloadFile(sock);
 
 	close(client_fd);
 	perror("CLOSE THE CONN AND RETURN");
