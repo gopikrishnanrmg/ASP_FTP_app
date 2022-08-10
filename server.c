@@ -7,12 +7,27 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <dirent.h>
 #define PORT 8080
 #define CMD_SIZE 1024
 
 char user[32];
 char *comPort = NULL;
 int port;
+
+int lsCommand(char * dirname, char *buffer){
+	DIR *dr;
+   	struct dirent *en;
+   	dr = opendir(dirname); 
+   	if (dr) {
+      	while ((en = readdir(dr)) != NULL) {
+			strcat(buffer, en->d_name);
+			strcat(buffer, "\n");
+    }
+      closedir(dr); 
+   }
+   return strlen(buffer);
+}
 
 void exitHandler(){
 	free(comPort);
@@ -27,6 +42,60 @@ int incPort(){
 	currentPort++;
 	sprintf(temp, "%d", currentPort);
 	strcpy(comPort, temp);
+	return 0;
+}
+
+int listCommand(int new_socket){
+	int valread;
+	char buffer[CMD_SIZE];
+	char *tempBuffer = malloc(sizeof(char)*CMD_SIZE);
+
+	strcpy(buffer, "200");
+	send(new_socket, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(new_socket, buffer, CMD_SIZE);
+
+	if(strcmp(buffer,"0")==0){
+		lsCommand(".", tempBuffer);
+		send(new_socket, tempBuffer, strlen(tempBuffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+	}
+	else{
+		strcpy(buffer, "200");
+		send(new_socket, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(new_socket, buffer, CMD_SIZE);
+
+		lsCommand(buffer, tempBuffer);
+		send(new_socket, tempBuffer, strlen(tempBuffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+	}
+	free(tempBuffer);
+
+	return 0;
+}
+
+int changeDIR(int new_socket){
+	int valread;
+	char buffer[CMD_SIZE];
+	
+	strcpy(buffer, "200");
+	send(new_socket, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(new_socket, buffer, CMD_SIZE);
+	
+	if(chdir(buffer)==0){
+		printf("changed to %s\n",buffer);
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, "200");
+	}else{
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, "400");
+	}
+
+	send(new_socket, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+
 	return 0;
 }
 
@@ -202,6 +271,10 @@ int initFTP(){
 		uploadFile(new_socket);
 	else if(strcmp(buffer,"RETR")==0)
 		downloadFile(new_socket);
+	else if(strcmp(buffer,"CWD")==0)
+		changeDIR(new_socket);
+	else if(strcmp(buffer,"LIST")==0)
+		listCommand(new_socket);
 
 	close(new_socket);
 	shutdown(server_fd, SHUT_RDWR);

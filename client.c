@@ -13,6 +13,75 @@
 char commands[CMD_SIZE][CMD_SIZE];
 int cmdLen;
 
+int pwdCommand(int sock){
+
+}
+
+int listCommand(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+
+	strcpy(buffer, "LIST");
+	send(sock, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(sock, buffer, CMD_SIZE);
+
+	if(strcmp(buffer,"200")==0){
+		memset(&buffer[0], 0, sizeof(buffer));
+
+		if(cmdLen>1){
+			strcpy(buffer, "0");
+			send(sock, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+			valread = read(sock, buffer, CMD_SIZE);
+		}else{
+			strcpy(buffer, "1");
+			send(sock, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+			valread = read(sock, buffer, CMD_SIZE);
+				
+			if(strcmp(buffer,"200")==0){
+				memset(&buffer[0], 0, sizeof(buffer));
+				strcpy(buffer, commands[1]);
+				send(sock, buffer, strlen(buffer), 0);
+				memset(&buffer[0], 0, sizeof(buffer));
+				valread = read(sock, buffer, CMD_SIZE);
+			}
+		}
+			printf("LIST of all files: \n%s\n",buffer);
+
+	}
+	
+
+	return 0;
+}
+
+int changeDIR(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+	
+	strcpy(buffer, "CWD");
+	send(sock, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(sock, buffer, CMD_SIZE);
+	
+	if(strcmp(buffer, "200")==0){
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, commands[1]);
+		send(sock, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(sock, buffer, CMD_SIZE);
+
+		if(strcmp(buffer, "200")==0)
+			printf("Changed to %s\n",commands[1]);
+		else
+			printf("Unable to change to %s\n",commands[1]);
+		
+	}
+
+	return 0;
+}
+
 int downloadFile(int sock){
 	int valread;
 	char buffer[CMD_SIZE];
@@ -57,7 +126,7 @@ int downloadFile(int sock){
 						break;
 				}
 				close(fd);
-				
+
 			}
 		}
 		else{
@@ -191,6 +260,10 @@ int initFTP(int port){
 		uploadFile(sock);
 	else if(strcmp(commands[0],"RETR")==0)
 		downloadFile(sock);
+	else if(strcmp(commands[0],"CWD")==0)
+		changeDIR(sock);
+	else if(strcmp(commands[0],"LIST")==0)
+		listCommand(sock);
 
 	close(client_fd);
 	perror("CLOSE THE CONN AND RETURN");
