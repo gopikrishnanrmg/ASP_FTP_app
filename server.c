@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <sys/stat.h>
 #define PORT 8080
 #define CMD_SIZE 1024
 
@@ -42,6 +43,108 @@ int incPort(){
 	currentPort++;
 	sprintf(temp, "%d", currentPort);
 	strcpy(comPort, temp);
+	return 0;
+}
+
+int deleCommand(int new_socket){
+	int valread;
+	char buffer[CMD_SIZE];
+	struct stat st = {0};
+
+	strcpy(buffer, "200");
+	send(new_socket, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(new_socket, buffer, CMD_SIZE);
+
+	if (stat(buffer, &st) == 0){
+    	if(remove(buffer)>-1){
+			strcpy(buffer, "200");
+			send(new_socket, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+		}else{
+			strcpy(buffer, "400");
+			send(new_socket, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+		}	
+	}else{
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, "400");
+		send(new_socket, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+	}
+
+	return 0;
+}
+
+int rmdCommand(int new_socket){
+	int valread;
+	char buffer[CMD_SIZE];
+	struct stat st = {0};
+
+	strcpy(buffer, "200");
+	send(new_socket, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(new_socket, buffer, CMD_SIZE);
+
+	if (stat(buffer, &st) == 0){
+    	if(rmdir(buffer)>-1){
+			strcpy(buffer, "200");
+			send(new_socket, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+		}else{
+			strcpy(buffer, "400");
+			send(new_socket, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+		}	
+	}else{
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, "400");
+		send(new_socket, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+	}
+
+	return 0;
+}
+
+int mkdCommand(int new_socket){
+	int valread;
+	char buffer[CMD_SIZE];
+	struct stat st = {0};
+
+	strcpy(buffer, "200");
+	send(new_socket, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(new_socket, buffer, CMD_SIZE);
+
+	if (stat(buffer, &st) == -1){
+    	if(mkdir(buffer, 0700)>-1){
+			strcpy(buffer, "200");
+			send(new_socket, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+		}else{
+			fprintf(stderr,"error code is %d\n",mkdir(buffer, 0700));
+			strcpy(buffer, "400");
+			send(new_socket, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+		}	
+	}else{
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, "400");
+		send(new_socket, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+	}
+
+	return 0;
+}
+
+int pwdCommand(int new_socket){
+	int valread;
+	char buffer[CMD_SIZE];
+
+	getcwd(buffer,sizeof(buffer));
+	send(new_socket, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	
 	return 0;
 }
 
@@ -275,6 +378,14 @@ int initFTP(){
 		changeDIR(new_socket);
 	else if(strcmp(buffer,"LIST")==0)
 		listCommand(new_socket);
+	else if(strcmp(buffer,"PWD")==0)
+		pwdCommand(new_socket);
+	else if(strcmp(buffer,"MKD")==0)
+		mkdCommand(new_socket);
+	else if(strcmp(buffer,"RMD")==0)
+		rmdCommand(new_socket);
+	else if(strcmp(buffer,"DELE")==0)
+		deleCommand(new_socket);
 
 	close(new_socket);
 	shutdown(server_fd, SHUT_RDWR);

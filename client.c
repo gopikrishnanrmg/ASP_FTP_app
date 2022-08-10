@@ -13,6 +13,93 @@
 char commands[CMD_SIZE][CMD_SIZE];
 int cmdLen;
 
+int deleCommand(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+
+	strcpy(buffer, "DELE");
+	send(sock, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(sock, buffer, CMD_SIZE);
+
+	if(strcmp(buffer,"200")==0){
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, commands[1]);
+		send(sock, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(sock, buffer, CMD_SIZE);
+		
+		if(strcmp(buffer,"200")==0)
+			printf("File %s deletion succesful\n",commands[1]);
+		else
+			printf("File %s deletion failed\n",commands[1]);
+	}
+	return 0;
+}
+
+int rmdCommand(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+
+	strcpy(buffer, "RMD");
+	send(sock, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(sock, buffer, CMD_SIZE);
+
+	if(strcmp(buffer,"200")==0){
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, commands[1]);
+		send(sock, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(sock, buffer, CMD_SIZE);
+		
+		if(strcmp(buffer,"200")==0)
+			printf("Directory %s deletion succesful\n",commands[1]);
+		else
+			printf("Directory %s deletion failed\n",commands[1]);
+	}
+	return 0;
+}
+
+int mkdCommand(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+
+	strcpy(buffer, "MKD");
+	send(sock, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(sock, buffer, CMD_SIZE);
+
+	if(strcmp(buffer,"200")==0){
+		
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, commands[1]);
+		send(sock, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(sock, buffer, CMD_SIZE);
+		
+		if(strcmp(buffer,"200")==0)
+			printf("Directory %s creation succesful\n",commands[1]);
+		else
+			printf("Directory %s creation failed\n",commands[1]);
+	}
+	return 0;
+}
+
+int pwdCommand(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+
+	strcpy(buffer, "PWD");
+	send(sock, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(sock, buffer, CMD_SIZE);
+	
+	printf("Current working directory is\n%s\n",buffer);
+
+	return 0;
+}
+
 int listCommand(int sock){
 	int valread;
 	char buffer[CMD_SIZE];
@@ -132,7 +219,6 @@ int downloadFile(int sock){
 	return 0;
 }
 
-
 int uploadFile(int sock){
 	int valread;
 	char buffer[CMD_SIZE];
@@ -194,7 +280,6 @@ int uploadFile(int sock){
 	close(fd);
 	return 0;
 }
-
 
 int userCommand(int sock){
 	int valread;
@@ -259,6 +344,14 @@ int initFTP(int port){
 		changeDIR(sock);
 	else if(strcmp(commands[0],"LIST")==0)
 		listCommand(sock);
+	else if(strcmp(commands[0],"PWD")==0)
+		pwdCommand(sock);
+	else if(strcmp(commands[0],"MKD")==0)
+		mkdCommand(sock);
+	else if(strcmp(commands[0],"RMD")==0)
+		rmdCommand(sock);
+	else if(strcmp(commands[0],"DELE")==0)
+		deleCommand(sock);
 
 	close(client_fd);
 	perror("CLOSE THE CONN AND RETURN");
@@ -330,7 +423,6 @@ int main(int argc, char const* argv[])
 	rest = commandBuf;
 	while ((command = strtok_r(rest, " ", &rest))){ 
 		command[strcspn(command, "\n")] = 0;
-		printf("command IS %s\n",command);
 		strcpy(commands[cmdLen], command);
 		cmdLen++;
 	}
