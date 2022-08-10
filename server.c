@@ -6,6 +6,7 @@
 	#include <sys/socket.h>
 	#include <unistd.h>
 	#include <sys/wait.h>
+	#include <fcntl.h>
 	#define PORT 8080
 	#define CMD_SIZE 1024
 
@@ -26,6 +27,55 @@
 		currentPort++;
 		sprintf(temp, "%d", currentPort);
 		strcpy(comPort, temp);
+		return 0;
+	}
+
+	int uploadFile(int new_socket){
+		int valread;
+		long int size,curSize=0;
+		char buffer[CMD_SIZE];
+		
+		strcpy(buffer, "200");
+		send(new_socket, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(new_socket, buffer, CMD_SIZE);
+
+		int fd = open(buffer,O_WRONLY|O_CREAT,0777);
+		if(fd==-1){
+			printf("\n The operation was not successful --%s\n",buffer);
+			memset(&buffer[0], 0, sizeof(buffer));
+			strcpy(buffer, "400");
+			send(new_socket, buffer, strlen(buffer), 0);
+		}
+		else{
+			memset(&buffer[0], 0, sizeof(buffer));
+			strcpy(buffer, "200");
+			send(new_socket, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+			valread = read(new_socket, buffer, CMD_SIZE);
+			// fprintf(stderr,"buffer is %s bytes\n",buffer);
+			size = atoi(buffer);
+			memset(&buffer[0], 0, sizeof(buffer));
+			strcpy(buffer, "200");
+			send(new_socket, buffer, strlen(buffer), 0);
+			perror("waiting for file");
+			while((valread = read(new_socket, buffer, CMD_SIZE))>0){
+				fprintf(stderr,"Read %d bytes\n",valread);
+				write(fd, buffer,valread);
+				memset(&buffer[0], 0, sizeof(buffer));
+				curSize+=valread;
+				fprintf(stderr,"Size is %ld and cursize is %ld\n",size,curSize);
+				if(curSize==size)
+					break;
+			}
+			perror("done");
+			memset(&buffer[0], 0, sizeof(buffer));
+			strcpy(buffer, "200");
+			send(new_socket, buffer, strlen(buffer), 0);
+			
+		}
+
+		close(fd);
 		return 0;
 	}
 
@@ -96,7 +146,9 @@
 			perror("USER COMMAND TRIGGERED");
 			userCommand(new_socket);
 		}
-
+		else if(strcmp(buffer, "PUT")==0)
+			uploadFile(new_socket);
+		
 
 		close(new_socket);
 		shutdown(server_fd, SHUT_RDWR);

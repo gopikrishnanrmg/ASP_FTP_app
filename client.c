@@ -5,11 +5,70 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <fcntl.h>
+
 #define PORT 8080
 #define CMD_SIZE 1024
 
 char commands[CMD_SIZE][CMD_SIZE];
 int cmdLen;
+
+int uploadFile(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+	long int n, size;
+	int fd = open(commands[1],O_RDONLY);
+	if(fd==-1){
+		printf("\n The operation was not successful with file %s\n",commands[1]);
+	}
+	else{
+		strcpy(buffer, "PUT");
+		send(sock, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(sock, buffer, CMD_SIZE);
+
+		if(strcmp(buffer, "200")==0){
+			memset(&buffer[0], 0, sizeof(buffer));
+			strcpy(buffer, commands[1]);
+			send(sock, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+			valread = read(sock, buffer, CMD_SIZE);
+			if(strcmp(buffer, "200")==0){
+				memset(&buffer[0], 0, sizeof(buffer));
+				size = lseek(fd,0, SEEK_END);
+				lseek(fd, 0, SEEK_SET);
+				sprintf(buffer,"%ld",size);
+				fprintf(stderr, "size is %ld\n",size);
+				send(sock, buffer, strlen(buffer), 0);
+				memset(&buffer[0], 0, sizeof(buffer));
+				valread = read(sock, buffer, CMD_SIZE);
+				if(strcmp(buffer, "200")==0){
+					memset(&buffer[0], 0, sizeof(buffer));
+					while((n=read(fd,buffer,CMD_SIZE))>0){
+						fprintf(stderr,"sending %ld bytes, sending %ld bytes\n",n,strlen(buffer));
+						send(sock, buffer, n, 0);
+						memset(&buffer[0], 0, sizeof(buffer));
+					}
+					// fprintf(stderr,"Size of buffer is %ld\n",strlen(buffer));
+					// perror("loop is done");
+					memset(&buffer[0], 0, sizeof(buffer));
+					valread = read(sock, buffer, CMD_SIZE);
+					// perror("waiting here");
+
+					if(strcmp(buffer, "200")==0){
+						perror("DONE UPLOADING FILE");
+					}
+				}
+				// else {
+				// 				fprintf(stderr, "buffer is %s\n",buffer);
+				// }
+				
+			}
+		}
+	}
+	close(fd);
+	return 0;
+}
 
 
 int userCommand(int sock){
@@ -67,7 +126,8 @@ int initFTP(int port){
 	
 	if(strcmp(commands[0],"USER")==0)
 		userCommand(sock);
-	
+	else if(strcmp(commands[0],"PUT")==0)
+		uploadFile(sock);
 
 	close(client_fd);
 	perror("CLOSE THE CONN AND RETURN");
@@ -100,7 +160,7 @@ int sock = 0, valread, client_fd;
 				sizeof(serv_addr)))
 		< 0) {
 		printf("\nConnection Failed, attempting reconnection... \n\n");
-		// goto RETRY;
+		goto RETRY;
 	}else 
 		printf("Connection Established\n\n");
 
@@ -128,10 +188,10 @@ int main(int argc, char const* argv[])
 	char commandBuf[CMD_SIZE], *rest = NULL, *command = NULL;
 	// fflush(stdin);
 	// fflush(stdout);
-	scanf("%s",commandBuf);
+	// scanf("%s",commandBuf);
 	// fprintf(stderr,"buf is %s",commandBuf);
 	// sleep(20);
-	// fgets(commandBuf,CMD_SIZE, stdin);
+	fgets(commandBuf,CMD_SIZE, stdin);
 
 	// if(strcmp(commandBuf,"exit\n")==0)  
 	// 	break;
@@ -142,6 +202,7 @@ int main(int argc, char const* argv[])
 		strcpy(commands[cmdLen], command);
 		cmdLen++;
 	}
+
 
 	initializeConn();
 	// }
