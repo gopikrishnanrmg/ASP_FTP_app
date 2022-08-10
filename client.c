@@ -13,10 +13,6 @@
 char commands[CMD_SIZE][CMD_SIZE];
 int cmdLen;
 
-int pwdCommand(int sock){
-
-}
-
 int listCommand(int sock){
 	int valread;
 	char buffer[CMD_SIZE];
@@ -28,8 +24,7 @@ int listCommand(int sock){
 
 	if(strcmp(buffer,"200")==0){
 		memset(&buffer[0], 0, sizeof(buffer));
-
-		if(cmdLen>1){
+		if(cmdLen<2){
 			strcpy(buffer, "0");
 			send(sock, buffer, strlen(buffer), 0);
 			memset(&buffer[0], 0, sizeof(buffer));
@@ -320,7 +315,7 @@ int sock = 0, valread, client_fd;
 int main(int argc, char const* argv[])
 {
 	// while(1){
-	int cmdLen = 0;
+	cmdLen = 0;
 	char commandBuf[CMD_SIZE], *rest = NULL, *command = NULL;
 	// fflush(stdin);
 	// fflush(stdout);
@@ -335,6 +330,7 @@ int main(int argc, char const* argv[])
 	rest = commandBuf;
 	while ((command = strtok_r(rest, " ", &rest))){ 
 		command[strcspn(command, "\n")] = 0;
+		printf("command IS %s\n",command);
 		strcpy(commands[cmdLen], command);
 		cmdLen++;
 	}
