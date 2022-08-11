@@ -117,7 +117,7 @@ int mkdCommand(int new_socket){
 	valread = read(new_socket, buffer, CMD_SIZE);
 
 	if (stat(buffer, &st) == -1){
-    	if(mkdir(buffer, 0700)>-1){
+    	if(mkdir(buffer, 0777)>-1){
 			strcpy(buffer, "200");
 			send(new_socket, buffer, strlen(buffer), 0);
 			memset(&buffer[0], 0, sizeof(buffer));
@@ -200,6 +200,42 @@ int changeDIR(int new_socket){
 	memset(&buffer[0], 0, sizeof(buffer));
 
 	return 0;
+}
+
+int appeCommand(int new_socket){
+	int valread;
+	char buffer[CMD_SIZE];
+
+	strcpy(buffer, "200");
+	send(new_socket, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(new_socket, buffer, CMD_SIZE);
+
+	int fd = open(buffer,O_WRONLY|O_CREAT|O_APPEND,0777);
+
+	if(fd==-1){
+		printf("\n The operation was not successful --%s\n",buffer);
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, "400");
+		send(new_socket, buffer, strlen(buffer), 0);
+	}
+	else{
+		lseek(fd,0,SEEK_END);
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, "200");
+		send(new_socket, buffer, strlen(buffer), 0);
+
+		valread = read(new_socket, buffer, CMD_SIZE);
+		write(fd, buffer,valread);
+
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, "200");
+		send(new_socket, buffer, strlen(buffer), 0);
+	}
+
+	close(fd);
+
+	return 0;	
 }
 
 int downloadFile(int new_socket){
@@ -374,6 +410,8 @@ int initFTP(){
 		uploadFile(new_socket);
 	else if(strcmp(buffer,"RETR")==0)
 		downloadFile(new_socket);
+	else if(strcmp(buffer,"APPE")==0)
+		appeCommand(new_socket);
 	else if(strcmp(buffer,"CWD")==0)
 		changeDIR(new_socket);
 	else if(strcmp(buffer,"LIST")==0)

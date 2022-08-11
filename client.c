@@ -164,6 +164,46 @@ int changeDIR(int sock){
 	return 0;
 }
 
+int appeCommand(int sock){
+	int valread, i;
+	char buffer[CMD_SIZE];
+	long int n, size;
+
+	strcpy(buffer, "APPE");
+	send(sock, buffer, strlen(buffer), 0);
+	memset(&buffer[0], 0, sizeof(buffer));
+	valread = read(sock, buffer, CMD_SIZE);	
+
+	if(strcmp(buffer, "200")==0){
+
+		memset(&buffer[0], 0, sizeof(buffer));
+		strcpy(buffer, commands[1]);
+		send(sock, buffer, strlen(buffer), 0);
+		memset(&buffer[0], 0, sizeof(buffer));
+		valread = read(sock, buffer, CMD_SIZE);
+
+		if(strcmp(buffer, "200")==0){
+			memset(&buffer[0], 0, sizeof(buffer));
+			for(i=2;i<cmdLen;i++){
+				strcat(buffer,commands[i]);
+				if(i!=cmdLen-1)
+					strcat(buffer," ");
+			}
+
+			send(sock, buffer, strlen(buffer), 0);
+			memset(&buffer[0], 0, sizeof(buffer));
+			valread = read(sock, buffer, CMD_SIZE);
+			
+			if(strcmp(buffer, "200")==0)
+				printf("The data has been appened\n");
+			else
+				printf("The data has not been appened\n");
+		}
+	}
+
+	return 0;	
+}
+
 int downloadFile(int sock){
 	int valread;
 	char buffer[CMD_SIZE];
@@ -340,6 +380,8 @@ int initFTP(int port){
 		uploadFile(sock);
 	else if(strcmp(commands[0],"RETR")==0)
 		downloadFile(sock);
+	else if(strcmp(commands[0],"APPE")==0)
+		appeCommand(sock);
 	else if(strcmp(commands[0],"CWD")==0)
 		changeDIR(sock);
 	else if(strcmp(commands[0],"LIST")==0)
@@ -352,6 +394,7 @@ int initFTP(int port){
 		rmdCommand(sock);
 	else if(strcmp(commands[0],"DELE")==0)
 		deleCommand(sock);
+	
 
 	close(client_fd);
 	perror("CLOSE THE CONN AND RETURN");
