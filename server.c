@@ -400,8 +400,9 @@ int initFTP(){
 	}
 	printf("Accepted connection on %d\n",port);
 
-	valread = read(new_socket, buffer, 1024);
+	while (1){
 	
+	valread = read(new_socket, buffer, 1024);
 	if(strcmp(buffer, "USER")==0){	//Check each command here with strcmp and buffer
 		perror("USER COMMAND TRIGGERED");
 		userCommand(new_socket);
@@ -424,7 +425,11 @@ int initFTP(){
 		rmdCommand(new_socket);
 	else if(strcmp(buffer,"DELE")==0)
 		deleCommand(new_socket);
-
+	else if(strcmp(buffer,"EXIT")==0)
+		break;
+	
+	memset(&buffer[0], 0, sizeof(buffer));
+	}
 	close(new_socket);
 	shutdown(server_fd, SHUT_RDWR);
 
@@ -494,6 +499,9 @@ int initializeConn(){
 
 int main(int argc, char const* argv[])
 {
+	if(argc==3 && strcmp(argv[1],"-d")==0)
+		chdir(argv[2]);
+		
 	comPort = malloc(sizeof(char)*4);
 	strcpy(comPort,"9000");
 
@@ -501,7 +509,6 @@ int main(int argc, char const* argv[])
 
 	while(1)
 		initializeConn();
-
 	
 	free(comPort);
 	return 0;

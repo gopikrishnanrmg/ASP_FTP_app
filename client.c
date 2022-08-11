@@ -13,6 +13,16 @@
 char commands[CMD_SIZE][CMD_SIZE];
 int cmdLen;
 
+int exitCommand(int sock){
+	int valread;
+	char buffer[CMD_SIZE];
+
+	strcpy(buffer, "EXIT");
+	send(sock, buffer, strlen(buffer), 0);
+
+	return 0;
+}
+
 int deleCommand(int sock){
 	int valread;
 	char buffer[CMD_SIZE];
@@ -374,27 +384,43 @@ int initFTP(int port){
 	}else 
 		printf("Connection Established\n\n");
 	
-	if(strcmp(commands[0],"USER")==0)
-		userCommand(sock);
-	else if(strcmp(commands[0],"STOR")==0)
-		uploadFile(sock);
-	else if(strcmp(commands[0],"RETR")==0)
-		downloadFile(sock);
-	else if(strcmp(commands[0],"APPE")==0)
-		appeCommand(sock);
-	else if(strcmp(commands[0],"CWD")==0)
-		changeDIR(sock);
-	else if(strcmp(commands[0],"LIST")==0)
-		listCommand(sock);
-	else if(strcmp(commands[0],"PWD")==0)
-		pwdCommand(sock);
-	else if(strcmp(commands[0],"MKD")==0)
-		mkdCommand(sock);
-	else if(strcmp(commands[0],"RMD")==0)
-		rmdCommand(sock);
-	else if(strcmp(commands[0],"DELE")==0)
-		deleCommand(sock);
-	
+	while(1){
+		cmdLen = 0;
+		char commandBuf[CMD_SIZE], *rest = NULL, *command = NULL;
+		fgets(commandBuf,CMD_SIZE, stdin);
+
+		rest = commandBuf;
+		while ((command = strtok_r(rest, " ", &rest))){ 
+			command[strcspn(command, "\n")] = 0;
+			strcpy(commands[cmdLen], command);
+			cmdLen++;
+		}
+
+		if(strcmp(commands[0],"USER")==0)
+			userCommand(sock);
+		else if(strcmp(commands[0],"STOR")==0)
+			uploadFile(sock);
+		else if(strcmp(commands[0],"RETR")==0)
+			downloadFile(sock);
+		else if(strcmp(commands[0],"APPE")==0)
+			appeCommand(sock);
+		else if(strcmp(commands[0],"CWD")==0)
+			changeDIR(sock);
+		else if(strcmp(commands[0],"LIST")==0)
+			listCommand(sock);
+		else if(strcmp(commands[0],"PWD")==0)
+			pwdCommand(sock);
+		else if(strcmp(commands[0],"MKD")==0)
+			mkdCommand(sock);
+		else if(strcmp(commands[0],"RMD")==0)
+			rmdCommand(sock);
+		else if(strcmp(commands[0],"DELE")==0)
+			deleCommand(sock);
+		else if(strcmp(commands[0],"EXIT")==0){
+			exitCommand(sock);
+			break;
+		}
+	}
 
 	close(client_fd);
 	perror("CLOSE THE CONN AND RETURN");
@@ -435,14 +461,14 @@ int sock = 0, valread, client_fd;
 	valread = read(sock, buffer, 1024);
 
 	if(strcmp(buffer, "invalid request")!=0){
-		close(client_fd);
+		// close(client_fd);
 		printf("%d\n", atoi(buffer)-1);
 		initFTP(atoi(buffer)-1);
 		perror("FINISHED initFTP");
 
 	}
-	else
-		close(client_fd);
+	// else
+	// 	close(client_fd);
 	
 	perror("EXITING initconn");
 	return 0;
@@ -450,28 +476,6 @@ int sock = 0, valread, client_fd;
 
 int main(int argc, char const* argv[])
 {
-	// while(1){
-	cmdLen = 0;
-	char commandBuf[CMD_SIZE], *rest = NULL, *command = NULL;
-	// fflush(stdin);
-	// fflush(stdout);
-	// scanf("%s",commandBuf);
-	// fprintf(stderr,"buf is %s",commandBuf);
-	// sleep(20);
-	fgets(commandBuf,CMD_SIZE, stdin);
-
-	// if(strcmp(commandBuf,"exit\n")==0)  
-	// 	break;
-
-	rest = commandBuf;
-	while ((command = strtok_r(rest, " ", &rest))){ 
-		command[strcspn(command, "\n")] = 0;
-		strcpy(commands[cmdLen], command);
-		cmdLen++;
-	}
-
-
 	initializeConn();
-	// }
 	return 0;
 }
